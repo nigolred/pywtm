@@ -2,34 +2,28 @@
 """
 Created on Sun Nov 22 17:53:35 2020
 
-@author: Golinucci
+@author: nigolred
 """
 
-import pandas as pd
 import pymrio
-import World_Trade_Model
+import World_Trade_Model as wtm
 
-database = r'C:\Users\golinucci\Documents\Database\EXIOBASE\ixi\exiobase_3.4_iot_2011_ixi.zip'
-case = r'Inputs\Inputs.xlsx'
-World = pymrio.parse_exiobase3(database)
+exiobase3_path = r'C:\Users\Gollinucci\Desktop\Nicolò\Lavoro\FEEM\Databases\exiobase_3.4_iot_2011_ixi.zip'
+Agg = r'Inputs\Aggregation.xlsx'
+World = pymrio.parse_exiobase3(exiobase3_path)
 World.calc_all()
 
 #%% Choose aggregations and factors
-
-agg_sec = pd.read_excel(case, sheet_name='Sectors')
-agg_reg = pd.read_excel(case, sheet_name='Regions')
-Factors = pd.read_excel(case, sheet_name='Factors')
-
-Fac_dis = Factors.loc[:,'Disaggregated_factors']
-Fac_agg = Factors.loc[:,'Macro_factor']
-Fac_uni = Factors.loc[:,'Unit_of_measure']
-
-sat_index = pd.MultiIndex.from_arrays([Fac_dis.values,Fac_agg.values,Fac_uni.values])
-World.satellite.F.index = sat_index
-World.satellite.F = World.satellite.F.groupby(level=[1,2], axis=0, sort=False).agg('sum').drop('unused')        
-
-World.aggregate(agg_reg, agg_sec)
+wtm.aggregate(World, Agg)
 World.calc_all()
-F = World.satellite.F
+GDP = World.satellite.F.loc['Value Added',:].sum().sum()/10**6
+#%% Building the needed matrices
+wtm.prepare(World)
 
+#%% Running the model and saving the results
+WTM_World = wtm.run(World, r'Inputs\WTM_Inputs.xlsx')
+Results = World.wtm_results
+GDP_wtm = Results['GDP'].sum().sum()
+GDP_p = (GDP_wtm-GDP)*100/GDP
 
+# for world in world_dict.keys()
